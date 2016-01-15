@@ -627,7 +627,7 @@ void menu() {
 }
 
 //Проверка таймаута по времени
-bool wottimeout() {
+bool wottimeout(void) {
   if (TimerPower > 3000) {
     return true;
   } else {
