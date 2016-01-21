@@ -21,10 +21,13 @@ char* myStrings[] = {"EDIT TIME", "EDIT TIMER", "EXIT"}; // 1-3
 unsigned long TimeAut = 0;
 
 //Значения таймера
-byte ChasTimer = 0;
-byte MinutTimer = 0;
-byte RabotaChasTimer = 0;
-byte RabotaMinutTimer = 0;
+byte ChasTimer = 0; //Часов запуска
+byte MinutTimer = 0; //минут запуска
+byte RabotaChasTimer = 0; //Через сколькл часов стоп
+byte RabotaMinutTimer = 0; //Через сколько минут стоп
+//byte RabotaData = 0;
+unsigned long Rabotachsov = 0;
+unsigned long StartTimer = 0;
 
 //Cтатус таймера
 bool TimerPower = false;
@@ -32,6 +35,7 @@ bool TimerPower = false;
 //порт переключателя
 int SRDPin = 12;
 
+//----------------------------------------------------------------------------------------------------------------------------
 void setup() {
 
   //  Serial.begin(9600);
@@ -62,18 +66,20 @@ void setup() {
   // Переводим курсор в начало координат x=0, y=0
   lcd.setCursor(4, 0);
   // Вывод привет
-  lcd.print("THERMO");
+  lcd.print("START");
   // wait a second.
   delay(1000);
   // set cursor on second line
-  lcd.setCursor(5, 1);
-  lcd.print("EL 23");
+  lcd.setCursor(3, 1);
+  lcd.print("PROGRAM");
   delay(2000);
+
+  //Прочистаем данные записаные в память таймера (чтение запись ограничено 100 000 раз)
   //Читаем данные с EEPROM
   ProchitatTimer();
 }
 
-//***************************************************************
+//**********************************************************************************************************************
 void loop() {
   //Проверка положения ждойстика
   char Joy ;
@@ -90,7 +96,7 @@ void loop() {
     } else {
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print(Joy);
+      //lcd.print(Joy);
       //TIME = ""; //Нужно обновить время
       delay(1000);
     }
@@ -99,18 +105,9 @@ void loop() {
   time_display();
   //Основная работа
   if (TimerPower) {
-    //if (digitalRead(SRDPin) == LOW) {
     digitalWrite(SRDPin, HIGH);
-    EEPROM.write(4, 1);//В 4 ячейке cтатус On
-    time.gettime();
-    EEPROM.write(5, time.day);//День старта
-    //}
   } else {
-    //if (digitalRead(SRDPin) == HIGH) {
     digitalWrite(SRDPin, LOW);
-    EEPROM.write(4, 0);//В 4 ячейке cтатус Off
-    EEPROM.write(5, 0);//День старта
-    //}
   }
   delay(100);
 }
@@ -120,53 +117,27 @@ void StatusTimer() {
   //Сравниванием дату часы минуты
   //Состояние системы Off/On
   //Дата старта Должна быть меньше текущей
-  time.gettime();
-  int StatusOnOff = EEPROM.read(4);
-  int DateStart = EEPROM.read(5);
-  //  Serial.println(StatusOnOff);
-  //  Serial.println(DateStart);
   //Проверим статус
-  if (StatusOnOff == 0) {
+  if (!TimerPower) {
+    time.gettime();
     //Если статус не запущен проверяем настало ли время для запуска
-    //    Serial.println(ChasTimer);
-    //    Serial.println(MinutTimer);
-    //    Serial.println("VREMYA");
-    //    Serial.println(time.Hours);
-    //    Serial.println(time.minutes);
-    if (ChasTimer <= time.Hours && MinutTimer <= time.minutes) {
-      //Проверим возможно начало периода уже настало
-      // if (RabotaChasTimer >= time.Hours && RabotaMinutTimer > time.minutes){
-      // Serial.println("Power On");
+    if (ChasTimer == time.Hours && MinutTimer == time.minutes) {
       TimerPower = true;
-      //}
-    }//а включать и не нужно пока
-  } else {
-    //Если время выключения меньше времени включения нужно ждать сутки
-    if (ChasTimer >= RabotaChasTimer && MinutTimer > RabotaMinutTimer) {
-      //Проверяем настал ли следующий день
-      if (DateStart < time.day) {
-        //Проверим настало ли время выключения
-        if (RabotaChasTimer <= time.Hours && RabotaMinutTimer <= time.minutes) {
-          // Serial.println("Power Off tomorow");
-          TimerPower = false;
-        }//Время выключения
-      }//Дата текущая и время не наступило
-    } else {
-      //Время выключения больше времени старта
-      if (RabotaChasTimer <= time.Hours && RabotaMinutTimer <= time.minutes) {
-        //Serial.println("Power Off today");
-        TimerPower = false;
-      }//Сегодня включили и сегодня выключили
+      //во сколько стартанули милисекунд
+      StartTimer = millis() / 1000;
     }
+  } else {
+    //Проверим сколько прошло времени с момента старта
+    Serial.println("------------------------------------------");
+    Serial.println((millis() / 1000) - StartTimer);
+    Serial.println(Rabotachsov);
+    Serial.println((millis() / 1000) - StartTimer > Rabotachsov);
+    if ((millis() / 1000) - StartTimer > Rabotachsov) {
+      TimerPower = false;
+      StartTimer = 0;
+    }
+
   }
-
-
-
-  //  if (ChasTimer >= time.Hours && MinutTimer >= time.minutes && RabotaChasTimer <= time.Hours && RabotaMinutTimer <= time.minutes) {
-  //    TimerPower = true;
-  //  } else {
-  //    TimerPower = false;
-  //  }
 }
 
 //7777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777
@@ -185,6 +156,8 @@ void ProchitatTimer() {
   MinutTimer = EEPROM.read(1);
   RabotaChasTimer = EEPROM.read(2);
   RabotaMinutTimer = EEPROM.read(3);
+  //время работы в секундах
+  Rabotachsov = ((RabotaChasTimer * 60) + RabotaMinutTimer) * 60;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -276,7 +249,7 @@ char position_joystik () {
 
   //Если нажата кнопка сразу возвращаем значение "B"
   if (buttonState == 0) {
-    TimerPower = millis();
+    TimeAut = millis();
     return 'B';
   } else {
     //Если Х и Y погрешность в пределах 10% значит джойстик на месте
@@ -289,11 +262,11 @@ char position_joystik () {
         //Больше отклюнение по Х осталось опредилить куда
         if (xUklon > xPosition)
         {
-          TimerPower = millis();
+          TimeAut = millis();
           return 'U';
         } else
         {
-          TimerPower = millis();
+          TimeAut = millis();
           return 'D';
         }
       } else
@@ -301,11 +274,11 @@ char position_joystik () {
         //Больше отклюнение по Y осталось опредилить куда
         if (yUklon > yPosition)
         {
-          TimerPower = millis();
+          TimeAut = millis();
           return 'L';
         } else
         {
-          TimerPower = millis();
+          TimeAut = millis();
           return 'R';
         }
       }
@@ -318,7 +291,7 @@ char position_joystik () {
 void menu() {
   int menuNaDisplay = 0; //Ранее выведеная позиция меню
   char PosJoy = '0';
-
+  boolean vuhod = true;
   //Настройчи часов - настройки программ
   //Выводим на дисплей время и подмигиваем настраиваемое значение
   while (NumMenu != 0) {
@@ -333,22 +306,21 @@ void menu() {
       menuNaDisplay = NumMenu;
     }
     switch (PosJoy) {
+      // ВПРАВО
       case 'R':
         delay(500);
         if (NumMenu < 3) {
           NumMenu = NumMenu + 1;
         }
         break;
+      // ВЛЕВО
       case 'L':
         delay(500);
         if (NumMenu > 1) {
           NumMenu = NumMenu - 1;
         }
         break;
-      default: { //Проверка выхода по таймауту
-          vuhod = wottimeout();
-        }
-        break;
+      // ENTER
       case 'B':
         delay(500);
         //Выбор подменю
@@ -356,7 +328,7 @@ void menu() {
           //настройка времени выводим дату и время с подсветкой значения настройки
           case 1: {
               int redaktirsimvol = 0;
-              boolean vuhod = true;
+              //boolean vuhod = true;
               boolean podsvetka = true;
               time.gettime();
               int Psekunda = time.seconds;
@@ -493,8 +465,8 @@ void menu() {
               }
               break;
             }
-          case 2://настройка таймера
-            {
+          //настройка таймера
+          case 2: {
               byte tChasTimer = ChasTimer;
               byte tMinutTimer = MinutTimer;
               byte tRabotaChasTimer = RabotaChasTimer;
@@ -502,14 +474,14 @@ void menu() {
 
               //В цикле постоянно выводим на экран данные сподсветкой настроек
               int redaktirsimvol = 0;
-              boolean vuhod = true;
+              //boolean vuhod = true;
               boolean podsvetka = true;
               //Нужно постоянно выводить дату и время и с частотой 1с пропадать и появлятся (замена редактируемого символа)
-              while (vuhod) {
+              while (!vuhod) {
                 //Вывод на экран с подсветкой нужного символа
                 lcd.clear();
                 lcd.home();
-                String StrokaLcd1 = "NACHALO " + NulS(tChasTimer) + "-" + NulS(tMinutTimer);
+                String StrokaLcd1 = "NACHALO " + NulS(tChasTimer) + ":" + NulS(tMinutTimer);
                 String StrokaLcd2 = "KONEC " + NulS(tRabotaChasTimer) + ":" + NulS(yRabotaMinutTimer);
                 lcd.print(StrokaLcd1);
                 lcd.setCursor(0, 1);
@@ -606,7 +578,7 @@ void menu() {
                       EEPROM.write(3, yRabotaMinutTimer);
                       ProchitatTimer();
                     }
-                    vuhod = false;
+                    vuhod = true;
                     menuNaDisplay = 0; //Нужно обновить дисплей
                     break;
                   default:  //Проверка выхода по таймауту
@@ -622,16 +594,22 @@ void menu() {
             vuhod = wottimeout();
             break;
         }
+      // ECKB НИЧЕГО НЕ ВЫБРАНО
+      default:  //Проверка выхода по таймауту
+        vuhod = wottimeout();
+        if (vuhod) {
+          NumMenu = 0;
+        }
+        break;
     }
   }
 }
 
 //Проверка таймаута по времени
 bool wottimeout(void) {
-  if (TimerPower > 3000) {
+  if (millis() - TimeAut > 300000) {
     return true;
   } else {
     return false;
   }
 }
-
