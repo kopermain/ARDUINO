@@ -594,7 +594,7 @@ void menu() {
             vuhod = wottimeout();
             break;
         }
-      // ECKB НИЧЕГО НЕ ВЫБРАНО
+      // ECЛИ НИЧЕГО НЕ ВЫБРАНО
       default:  //Проверка выхода по таймауту
         vuhod = wottimeout();
         if (vuhod) {
