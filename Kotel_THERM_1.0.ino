@@ -10,6 +10,9 @@ int xPin = A0;
 int yPin = A1;
 int buttonPin = 3;
 
+//включатель 4
+// SERVO 6
+
 //Запомним чтобы каждый раз не выводить
 String TIME;
 
@@ -33,7 +36,7 @@ unsigned long StartTimer = 0;
 bool TimerPower = false;
 
 //порт переключателя
-int SRDPin = 12;
+int SRDPin = 6;
 
 //----------------------------------------------------------------------------------------------------------------------------
 void setup() {
