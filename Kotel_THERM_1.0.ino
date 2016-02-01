@@ -4,11 +4,11 @@
 #include <RTC.h>
 
 RTC  time; //Часы
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Подключение по I2C LCD дисплея
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // Подключение по I2C LCD дисплея
 //Подключение джойстика
 int xPin = A0;
 int yPin = A1;
-int buttonPin = 13;
+int buttonPin = 3;
 
 //Запомним чтобы каждый раз не выводить
 String TIME;
@@ -128,10 +128,10 @@ void StatusTimer() {
     }
   } else {
     //Проверим сколько прошло времени с момента старта
-    Serial.println("------------------------------------------");
-    Serial.println((millis() / 1000) - StartTimer);
-    Serial.println(Rabotachsov);
-    Serial.println((millis() / 1000) - StartTimer > Rabotachsov);
+//    Serial.println("------------------------------------------");
+//    Serial.println((millis() / 1000) - StartTimer);
+//    Serial.println(Rabotachsov);
+//    Serial.println((millis() / 1000) - StartTimer > Rabotachsov);
     if ((millis() / 1000) - StartTimer > Rabotachsov) {
       TimerPower = false;
       StartTimer = 0;
@@ -182,14 +182,18 @@ int izmenitVPredelah(int Znacenie = 0, boolean dobavit = true, int minimum = 0, 
 
 //Вывод текущее время на экран
 void time_display() {
+  int tempC = 0;
   //String tTIME = time.gettime("d-m-Y H:i");
   String tTIME = time.gettime("dmYH:i:s");
   if (tTIME != TIME) {
+    tempC = time.ds3231_read_temp();
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(time.gettime("d-m-Y"));
     lcd.setCursor(0, 1);
     lcd.print(time.gettime("H:i:s"));
+    lcd.setCursor(14, 0);
+    lcd.print(tempC);
     lcd.setCursor(13, 1);
     if (TimerPower) {
       lcd.print("On");
@@ -338,7 +342,7 @@ void menu() {
               int Pmesyac = time.month;
               int Pgod = time.year;
               //Нужно постоянно выводить дату и время и с частотой 1с пропадать и появлятся (замена редактируемого символа)
-              while (vuhod) {
+              while (!vuhod) {
                 //Вывод на экран с подсветкой нужного символа
                 lcd.clear();
                 lcd.home();
@@ -454,7 +458,7 @@ void menu() {
                   case 'B':
                     delay(500);
                     time.settime(Psekunda, Pminuta, Pchas, Pdata, Pmesyac, Pgod); // 0  сек, 17 мин, 15 час, 1, октября, 2015 года, четверг
-                    vuhod = false;
+                    vuhod = true;
                     menuNaDisplay = 0; //Нужно обновить дисплей
                     break;
                   default:  //Проверка выхода по таймауту
