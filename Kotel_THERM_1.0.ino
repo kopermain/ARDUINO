@@ -10,8 +10,8 @@ int xPin = A0;
 int yPin = A1;
 int buttonPin = 3;
 
-//включатель 4
-// SERVO 6
+// Включатель 4
+int PowerON = 4;
 
 //Запомним чтобы каждый раз не выводить
 String TIME;
@@ -50,6 +50,9 @@ void setup() {
   //Инициализация СРД
   pinMode(SRDPin, OUTPUT);
 
+  //Инициализация тумблера
+  pinMode(PowerON, INPUT_PULLUP);
+
   //Инициализация часов
   //  delay(300);
   Serial.begin(9600);
@@ -87,32 +90,37 @@ void loop() {
   //Проверка положения ждойстика
   char Joy ;
   Joy = position_joystik();
+  //Serial.println(digitalRead(PowerON));
+  if (digitalRead(PowerON) == 0) {
+    digitalWrite(SRDPin, HIGH); 
+  } else {
+    //Если есть движение джойстика выводим
+    if (Joy != '0') {
+      //Если нажато B (кнопка) переходим в пункт меню переходим в меню
+      if (Joy == 'B') {
+        delay(500);
+        NumMenu = 1;
+        menu();
 
-  //Если есть движение джойстика выводим
-  if (Joy != '0') {
-    //Если нажато B (кнопка) переходим в пункт меню переходим в меню
-    if (Joy == 'B') {
-      delay(500);
-      NumMenu = 1;
-      menu();
-
+      } else {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        //lcd.print(Joy);
+        //TIME = ""; //Нужно обновить время
+        delay(1000);
+      }
+    }
+    StatusTimer();
+    //Основная работа
+    if (TimerPower) {
+      digitalWrite(SRDPin, HIGH);
     } else {
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      //lcd.print(Joy);
-      //TIME = ""; //Нужно обновить время
-      delay(1000);
+      digitalWrite(SRDPin, LOW);
     }
   }
-  StatusTimer();
   time_display();
-  //Основная работа
-  if (TimerPower) {
-    digitalWrite(SRDPin, HIGH);
-  } else {
-    digitalWrite(SRDPin, LOW);
-  }
   delay(100);
+
 }
 //***************************************************************
 
@@ -131,10 +139,10 @@ void StatusTimer() {
     }
   } else {
     //Проверим сколько прошло времени с момента старта
-//    Serial.println("------------------------------------------");
-//    Serial.println((millis() / 1000) - StartTimer);
-//    Serial.println(Rabotachsov);
-//    Serial.println((millis() / 1000) - StartTimer > Rabotachsov);
+    //    Serial.println("------------------------------------------");
+    //    Serial.println((millis() / 1000) - StartTimer);
+    //    Serial.println(Rabotachsov);
+    //    Serial.println((millis() / 1000) - StartTimer > Rabotachsov);
     if ((millis() / 1000) - StartTimer > Rabotachsov) {
       TimerPower = false;
       StartTimer = 0;
@@ -198,7 +206,7 @@ void time_display() {
     lcd.setCursor(14, 0);
     lcd.print(tempC);
     lcd.setCursor(13, 1);
-    if (TimerPower) {
+    if (digitalRead(SRDPin) == 1) {
       lcd.print("On");
     } else {
       lcd.print("Off");
